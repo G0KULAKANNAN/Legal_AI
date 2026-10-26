@@ -4,6 +4,7 @@ import app from './app';
 import { config } from './config';
 import { logger } from './config/logger';
 import { prisma } from './config/prisma';
+import { reminderWorker } from './workers/reminder.worker';
 
 const server = app.listen(config.port, () => {
   logger.info(`===================================================`);
@@ -13,10 +14,14 @@ const server = app.listen(config.port, () => {
   logger.info(` Gemini Model: ${config.gemini.model}`);
   logger.info(` Tagline: "Do Not Sign Before Reviewing the Document"`);
   logger.info(`===================================================`);
+
+  // Start automated legal deadline reminder worker
+  reminderWorker.start();
 });
 
 const gracefulShutdown = async (signal: string) => {
   logger.info(`Received ${signal}. Shutting down gracefully...`);
+  reminderWorker.stop();
   server.close(async () => {
     logger.info('HTTP server closed.');
     await prisma.$disconnect();
