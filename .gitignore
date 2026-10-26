@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+
+# Environment variables & secrets
+.env
+**/.env
+.env.*
+**/.env.*
+*.local
+
+# Database
+prisma/*.db
+prisma/*.db-journal
+*.sqlite
+
+# Storage, Uploads & Logs
+uploads/
+**/uploads/
+temp/
+**/temp/
+*.log
+**/*.log
+
+# Scratch and test media
+scratch/
+*.mp3
+*.pdf
+
+# IDE & System
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker persistent data
+pgdata/
+redisdata/

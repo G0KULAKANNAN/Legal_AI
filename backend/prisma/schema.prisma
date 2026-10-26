@@ -1,0 +1,472 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DocumentStatus {
+  UPLOADED
+  VALIDATING
+  STORED
+  EXTRACTING
+  OCR
+  ANALYZING
+  COMPLETED
+  FAILED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ReminderStatus {
+  PENDING
+  NOTIFIED
+  DISMISSED
+}
+
+enum SubscriptionPlan {
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
+
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  passwordHash      String
+  name              String
+  role              Role         @default(USER)
+  preferredLanguage String       @default("en") // "en" | "ta"
+  isActive          Boolean      @default(true)
+  isEmailVerified   Boolean      @default(true)
+  emailVerificationToken String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  sessions            Session[]
+  documents           Document[]
+  chatSessions        ChatSession[]
+  reminders           Reminder[]
+  auditLogs           AuditLog[]
+  documentComparisons DocumentComparison[]
+  reportedIssues      ReportedIssue[]
+  subscription        Subscription?
+  paymentTransactions PaymentTransaction[]
+  enterpriseLeads     EnterpriseLead[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  expiresAt        DateTime
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Document {
+  id              String         @id @default(uuid())
+  userId          String
+  filename        String
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  storageKey      String
+  status          DocumentStatus @default(UPLOADED)
+  processingError String?
+  detectedType    String?        // e.g. Rental Agreement, Offer Letter
+  language        String         @default("en")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages          DocumentPage[]
+  analysis       Analysis?
+  chatSessions   ChatSession[]
+  reminders      Reminder[]
+  processingJobs ProcessingJob[]
+  comparisonsA   DocumentComparison[] @relation("DocA")
+  comparisonsB   DocumentComparison[] @relation("DocB")
+
+  @@index([userId])
+  @@map("documents")
+}
+
+model DocumentPage {
+  id            String   @id @default(uuid())
+  documentId    String
+  pageNumber    Int
+  extractedText String   @db.Text
+  hasOcr        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@map("document_pages")
+}
+
+model Analysis {
+  id                  String   @id @default(uuid())
+  documentId          String   @unique
+  documentType        String
+  summaryPlain        String   @db.Text
+  summaryTamil        String   @db.Text
+  summaryDetailed     String   @db.Text
+  whatYouAreAgreeingTo String  @db.Text
+  financialSummary    String   @db.Text
+  scamScore           Float    @default(0.0)
+  scamAnalysis        String?  @db.Text
+  rawAiResponse       Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  document         Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  clauses          Clause[]
+  risks            Risk[]
+  charges          Charge[]
+  penalties        Penalty[]
+  importantDates   ImportantDate[]
+  timelineEvents   TimelineEvent[]
+  fairnessAnalyses FairnessAnalysis[]
+  reports          Report[]
+
+  @@map("analyses")
+}
+
+model Clause {
+  id               String    @id @default(uuid())
+  analysisId       String
+  title            String
+  category         String
+  extractedText    String    @db.Text
+  pageNumber       Int?
+  explanationPlain String    @db.Text
+  explanationTamil String    @db.Text
+  riskLevel        RiskLevel @default(LOW)
+  confidence       Float     @default(1.0)
+  sourceRef        String?
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("clauses")
+}
+
+model Risk {
+  id                   String    @id @default(uuid())
+  analysisId           String
+  riskLevel            RiskLevel
+  title                String
+  reasonPlain          String    @db.Text
+  reasonTamil          String    @db.Text
+  sourceRef            String?
+  suggestedNegotiation String?   @db.Text
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("risks")
+}
+
+model Charge {
+  id              String   @id @default(uuid())
+  analysisId      String
+  name            String
+  amountCondition String
+  sourceRef       String?
+  explanation     String   @db.Text
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("charges")
+}
+
+model Penalty {
+  id                  String   @id @default(uuid())
+  analysisId          String
+  triggerCondition    String   @db.Text
+  penaltyAmountOrTerm String   @db.Text
+  sourceRef           String?
+  explanation         String   @db.Text
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("penalties")
+}
+
+model ImportantDate {
+  id                String   @id @default(uuid())
+  analysisId        String
+  dateString        String
+  eventType         String
+  explanation       String   @db.Text
+  sourceRef         String?
+  isReminderCreated Boolean  @default(false)
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("important_dates")
+}
+
+model TimelineEvent {
+  id            String   @id @default(uuid())
+  analysisId    String
+  sequenceOrder Int
+  eventDate     String?
+  title         String
+  description   String   @db.Text
+  sourceRef     String?
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("timeline_events")
+}
+
+model FairnessAnalysis {
+  clientImbalanceScore  Float    @default(0.5) // 0 (unfair/one-sided) to 1 (very fair)
+  id                    String   @id @default(uuid())
+  analysisId            String
+  clauseTitle           String
+  benchmarkCategory     String
+  imbalanceScore        Float
+  reason                String   @db.Text
+  evidence              String   @db.Text
+  suggestedAlternative  String?  @db.Text
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@map("fairness_analyses")
+}
+
+model ChatSession {
+  id         String   @id @default(uuid())
+  documentId String
+  userId     String
+  title      String   @default("Document Q&A")
+  createdAt  DateTime @default(now())
+
+  document Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([documentId])
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  chatSessionId String
+  role          String   // "user" | "assistant"
+  content       String   @db.Text
+  sources       Json?    // Array of page/clause refs
+  createdAt     DateTime @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId])
+  @@map("chat_messages")
+}
+
+model DocumentComparison {
+  id              String   @id @default(uuid())
+  userId          String
+  docAId          String
+  docBId          String
+  diffSummary     String   @db.Text
+  addedClauses    Json     // Array of clause diff items
+  removedClauses  Json
+  modifiedClauses Json
+  createdAt       DateTime @default(now())
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  docA Document @relation("DocA", fields: [docAId], references: [id], onDelete: Cascade)
+  docB Document @relation("DocB", fields: [docBId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("document_comparisons")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  analysisId  String
+  pdfUrl      String
+  generatedAt DateTime @default(now())
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model Reminder {
+  id         String         @id @default(uuid())
+  userId     String
+  documentId String
+  title      String
+  dueDate    DateTime
+  status     ReminderStatus @default(PENDING)
+  notes      String?        @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dueDate])
+  @@map("reminders")
+}
+
+model LegalSource {
+  id            String    @id @default(uuid())
+  act           String
+  section       String
+  title         String
+  description   String    @db.Text
+  applicability String    @db.Text
+  sourceUrl     String
+  verifiedAt    DateTime  @default(now())
+
+  @@map("legal_sources")
+}
+
+model ProcessingJob {
+  id          String    @id @default(uuid())
+  documentId  String
+  status      DocumentStatus
+  attempts    Int       @default(0)
+  error       String?   @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("processing_jobs")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  ipAddress String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ReportedIssue {
+  id        String   @id @default(uuid())
+  userId    String
+  issue     String   @db.Text
+  category  String   @default("GENERAL")
+  status    String   @default("OPEN") // "OPEN" | "RESOLVED"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("reported_issues")
+}
+
+model Subscription {
+  id                         String             @id @default(uuid())
+  userId                     String             @unique
+  plan                       SubscriptionPlan   @default(PREMIUM)
+  status                     SubscriptionStatus @default(ACTIVE)
+  amount                     Int                @default(29900) // in paise (₹299)
+  currency                   String             @default("INR")
+  billingCycle               String             @default("monthly")
+  startDate                  DateTime           @default(now())
+  currentPeriodStart         DateTime           @default(now())
+  currentPeriodEnd           DateTime
+  cancelAtPeriodEnd          Boolean            @default(false)
+  razorpaySubscriptionId     String?
+  razorpayPaymentId          String?
+  razorpayOrderId            String?
+  documentsAnalyzedThisMonth Int                @default(0)
+  lastUsageReset             DateTime           @default(now())
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model PaymentTransaction {
+  id        String           @id @default(uuid())
+  userId    String
+  orderId   String           @unique
+  paymentId String?
+  signature String?
+  amount    Int              @default(29900)
+  currency  String           @default("INR")
+  status    String           @default("CREATED") // CREATED, SUCCESS, FAILED
+  plan      SubscriptionPlan @default(PREMIUM)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@map("payment_transactions")
+}
+
+model EnterpriseLead {
+  id            String   @id @default(uuid())
+  userId        String?
+  name          String
+  email         String
+  company       String?
+  phone         String?
+  expectedUsers Int?
+  notes         String?  @db.Text
+  status        String   @default("NEW") // NEW, CONTACTED, CLOSED
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("enterprise_leads")
+}
