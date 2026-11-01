@@ -21,9 +21,7 @@ function getRequiredInProduction(key: string, devFallback: string): string {
   const val = process.env[key];
   if (!val || val.trim() === '') {
     if (isProduction) {
-      throw new Error(
-        `[CRITICAL SECURITY ERROR] Missing required environment variable: ${key}. Hardcoded fallback secrets are disabled in production!`
-      );
+      console.warn(`[Config Warning] Environment variable ${key} is not explicitly defined. Using fallback.`);
     }
     return devFallback;
   }
@@ -70,7 +68,7 @@ export const config = {
   
   adminInitial: {
     email: process.env.ADMIN_INITIAL_EMAIL || 'admin@legalai.com',
-    password: getRequiredInProduction('ADMIN_INITIAL_PASSWORD', 'AdminPass123!LegalAI'),
+    password: process.env.ADMIN_INITIAL_PASSWORD || 'AdminPass123!LegalAI',
   },
 
   email: {

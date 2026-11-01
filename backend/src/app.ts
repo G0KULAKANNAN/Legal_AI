@@ -61,19 +61,17 @@ const healthHandler = (_req: express.Request, res: express.Response) =>
 const readyHandler = (_req: express.Request, res: express.Response) =>
   sendSuccess(res, { status: 'READY' });
 
-app.get('/health', healthHandler);
-app.get('/api/health', healthHandler);
-app.get('/ready', readyHandler);
-app.get('/api/ready', readyHandler);
+app.get(['/', '/health', '/api/health'], healthHandler);
+app.get(['/ready', '/api/ready'], readyHandler);
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/reminders', reminderRoutes);
-app.use('/api/subscription', subscriptionRoutes);
-app.use('/api/admin', adminRoutes);
+// API Routes (supports both /api/* and direct path prefixes for Vercel rewrites)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/chat', '/chat'], chatRoutes);
+app.use(['/api/documents', '/documents'], documentRoutes);
+app.use(['/api/reminders', '/reminders'], reminderRoutes);
+app.use(['/api/subscription', '/subscription'], subscriptionRoutes);
+app.use(['/api/admin', '/admin'], adminRoutes);
 
 // 404 Handler
 app.use('*', (_req, res) => res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'API route not found' } }));

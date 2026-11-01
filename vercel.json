@@ -4,7 +4,7 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "functions": {
-    "api/index.ts": {
+    "api/*.ts": {
       "maxDuration": 60,
       "memory": 1024
     }
@@ -12,18 +12,18 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api"
     },
     {
       "source": "/health",
-      "destination": "/api/index.ts"
+      "destination": "/api"
     },
     {
       "source": "/ready",
-      "destination": "/api/index.ts"
+      "destination": "/api"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
