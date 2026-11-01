@@ -11,21 +11,49 @@ if (process.env.NODE_ENV !== 'production' && !process.env.NODE_TLS_REJECT_UNAUTH
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Validates that production critical variables are explicitly supplied via environment
+ * and never fall back to known development strings.
+ */
+function getRequiredInProduction(key: string, devFallback: string): string {
+  const val = process.env[key];
+  if (!val || val.trim() === '') {
+    if (isProduction) {
+      throw new Error(
+        `[CRITICAL SECURITY ERROR] Missing required environment variable: ${key}. Hardcoded fallback secrets are disabled in production!`
+      );
+    }
+    return devFallback;
+  }
+  return val.trim();
+}
+
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   appUrl: process.env.APP_URL || 'http://localhost:5000',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://legalai:legalai_password@localhost:5432/legalai_db?schema=public',
+  databaseUrl: getRequiredInProduction(
+    'DATABASE_URL',
+    'postgresql://legalai:legalai_password@localhost:5432/legalai_db?schema=public'
+  ),
+  directUrl: getRequiredInProduction(
+    'DIRECT_URL',
+    process.env.DATABASE_URL || 'postgresql://legalai:legalai_password@localhost:5432/legalai_db?schema=public'
+  ),
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   
   jwt: {
-    secret: process.env.JWT_SECRET || 'legalai_development_jwt_secret_key_32_characters_minimum',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'legalai_development_refresh_jwt_secret_key_32_characters',
+    secret: getRequiredInProduction('JWT_SECRET', 'legalai_development_jwt_secret_key_32_characters_minimum'),
+    refreshSecret: getRequiredInProduction('JWT_REFRESH_SECRET', 'legalai_development_refresh_jwt_secret_key_32_characters'),
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
+
+  sessionSecret: getRequiredInProduction('SESSION_SECRET', 'legalai_development_session_secret_key'),
   
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
@@ -42,7 +70,7 @@ export const config = {
   
   adminInitial: {
     email: process.env.ADMIN_INITIAL_EMAIL || 'admin@legalai.com',
-    password: process.env.ADMIN_INITIAL_PASSWORD || 'AdminPass123!LegalAI',
+    password: getRequiredInProduction('ADMIN_INITIAL_PASSWORD', 'AdminPass123!LegalAI'),
   },
 
   email: {
@@ -56,9 +84,9 @@ export const config = {
 
   subscription: {
     razorpay: {
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_legalai_sandbox',
-      keySecret: process.env.RAZORPAY_KEY_SECRET || 'legalai_sandbox_secret_key_32chars',
-      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || 'legalai_webhook_secret_key',
+      keyId: process.env.RAZORPAY_KEY_ID || (isProduction ? '' : 'rzp_test_legalai_sandbox'),
+      keySecret: process.env.RAZORPAY_KEY_SECRET || (isProduction ? '' : 'legalai_sandbox_secret_key_32chars'),
+      webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || (isProduction ? '' : 'legalai_webhook_secret_key'),
     },
     plans: {
       PREMIUM: {

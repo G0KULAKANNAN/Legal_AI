@@ -10,8 +10,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding LegalAI database...');
 
+  const isProduction = process.env.NODE_ENV === 'production';
   const adminEmail = process.env.ADMIN_INITIAL_EMAIL || 'admin@legalai.com';
-  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminPass123!LegalAI';
+  let adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+
+  if (!adminPassword) {
+    if (isProduction) {
+      throw new Error(
+        'Refusing to seed database in production without an explicit ADMIN_INITIAL_PASSWORD. Set ADMIN_INITIAL_PASSWORD to a secure random password.'
+      );
+    }
+    adminPassword = 'AdminPass123!LegalAI';
+  }
 
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
