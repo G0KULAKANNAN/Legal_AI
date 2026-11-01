@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": "."
+  },
+  "include": ["api/**/*", "backend/src/**/*"],
+  "exclude": ["node_modules", "backend/dist", "frontend/dist", "**/*.test.ts"]
+}

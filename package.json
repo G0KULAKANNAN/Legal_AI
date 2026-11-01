@@ -1,0 +1,27 @@
+{
+  "name": "legalai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production LegalAI Document Analysis Platform - Monorepo for Vercel Deployment",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "vercel-build": "npm run prisma:generate --workspace=backend && npm run build --workspace=backend && npm run build --workspace=frontend",
+    "postinstall": "npm run prisma:generate --workspace=backend",
+    "prisma:generate": "npm run prisma:generate --workspace=backend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.2"
+  }
+}

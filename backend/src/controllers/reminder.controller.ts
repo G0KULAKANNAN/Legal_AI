@@ -1,11 +1,29 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { sendSuccess } from '../utils/response';
 import { prisma } from '../config/prisma';
-import { BadRequestError, NotFoundError } from '../utils/errors';
+import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
 import { ReminderStatus } from '@prisma/client';
+import { reminderWorker } from '../workers/reminder.worker';
 
 export class ReminderController {
+  async handleCronReminders(req: Request, res: Response, next: NextFunction) {
+    try {
+      // If CRON_SECRET is configured, verify Vercel authorization header
+      if (process.env.CRON_SECRET) {
+        const authHeader = req.headers.authorization;
+        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+          throw new UnauthorizedError('Unauthorized cron invocation');
+        }
+      }
+
+      const dispatched = await reminderWorker.checkAndDispatchReminders();
+      return sendSuccess(res, { dispatched, executedAt: new Date() }, 'Reminder cron executed successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getReminders(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;

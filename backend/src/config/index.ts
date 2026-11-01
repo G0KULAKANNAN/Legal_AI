@@ -33,8 +33,8 @@ export const config = {
   },
   
   storage: {
-    provider: (process.env.STORAGE_PROVIDER || 'local') as 'local' | 'supabase',
-    localPath: path.resolve(process.env.LOCAL_STORAGE_PATH || './uploads'),
+    provider: (process.env.STORAGE_PROVIDER || (process.env.SUPABASE_URL ? 'supabase' : 'local')) as 'local' | 'supabase',
+    localPath: path.resolve(process.env.LOCAL_STORAGE_PATH || (process.env.VERCEL ? '/tmp/uploads' : './uploads')),
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_KEY || '',
     supabaseBucket: process.env.SUPABASE_BUCKET || 'legalai-documents',

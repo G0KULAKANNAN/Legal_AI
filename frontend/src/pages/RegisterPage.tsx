@@ -175,6 +175,10 @@ export const RegisterPage: React.FC = () => {
                   </select>
                 </div>
 
+                <p className="text-[11px] text-slate-500 leading-relaxed text-center bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  By signing up, you acknowledge the <strong>Legal Disclaimer</strong>: LegalAI provides AI-assisted analysis for educational purposes and does not substitute for qualified legal advice.
+                </p>
+
                 <button
                   type="submit"
                   disabled={loading}

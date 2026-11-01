@@ -68,6 +68,26 @@ export class DocumentController {
     }
   }
 
+  async processDocument(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+      const doc = await prisma.document.findFirst({ where: { id, userId } });
+      if (!doc) {
+        throw new NotFoundError('Document not found');
+      }
+
+      await workerService.processDirectly(doc.id);
+      const updated = await prisma.document.findUnique({
+        where: { id: doc.id },
+        include: { analysis: true },
+      });
+      return sendSuccess(res, updated, 'Document processed successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getDocuments(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;

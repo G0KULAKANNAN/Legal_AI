@@ -7,6 +7,7 @@ import { FileUploadModal } from '../components/FileUploadModal';
 import { CompareModal } from '../components/CompareModal';
 import { RemindersModal } from '../components/RemindersModal';
 import { SubscriptionRequiredModal } from '../components/SubscriptionRequiredModal';
+import { LegalDisclaimerBanner } from '../components/LegalDisclaimerBanner';
 import { api } from '../api/axios';
 import { LegalDocument } from '../types';
 import {
@@ -159,6 +160,9 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Legal Disclaimer Notice */}
+        <LegalDisclaimerBanner variant="compact" dismissible />
 
         {/* Subscription Status Callout Banner */}
         {!hasActiveSubscription ? (

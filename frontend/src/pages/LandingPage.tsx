@@ -181,6 +181,32 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Mandatory Legal Disclaimer Section */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="bg-amber-50/70 border border-amber-200/90 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start gap-6 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0">
+            <Scale className="w-6 h-6" />
+          </div>
+          <div className="space-y-2 flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-300">
+                Mandatory Legal Disclaimer
+              </span>
+              <span className="text-xs font-bold text-slate-700">Information & Educational Purpose</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+              LegalAI is an Automated Intelligence Tool — Not a Substitute for an Attorney
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-4xl">
+              LegalAI provides automated natural language processing and clause benchmarks to assist you in understanding agreements before signing. It does not provide legal advice, statutory interpretation, or representation. Always consult a qualified lawyer or legal professional before signing or executing any legally binding agreement.
+            </p>
+            <p className="text-[11px] text-amber-800 font-medium pt-1">
+              சட்ட மறுப்பு: LegalAI வழங்கும் பகுப்பாய்வு தகவல் நோக்கங்களுக்கானது மட்டுமே; இது உத்தியோகபூர்வ சட்ட ஆலோசனை அல்ல. கையொப்பமிடும் முன் வழக்கறிஞரை அணுகவும்.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

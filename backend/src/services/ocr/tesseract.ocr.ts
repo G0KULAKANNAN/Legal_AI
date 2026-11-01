@@ -7,7 +7,11 @@ export class TesseractOCRProvider implements OCRProvider {
     logger.info(`[TesseractOCRProvider] Starting OCR recognition (languages: ${language})...`);
     let worker;
     try {
-      worker = await createWorker(language);
+      const workerOptions: any = {};
+      if (process.env.VERCEL) {
+        workerOptions.cachePath = '/tmp';
+      }
+      worker = await createWorker(language, 1, workerOptions);
       const ret = await worker.recognize(imageBuffer);
       await worker.terminate();
       

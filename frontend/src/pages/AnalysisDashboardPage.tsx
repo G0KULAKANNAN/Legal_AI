@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/axios';
+import { LegalDisclaimerBanner } from '../components/LegalDisclaimerBanner';
 import {
   Scale,
   ShieldAlert,
@@ -363,6 +364,9 @@ Priya S`;
 
         {/* Scrollable Dashboard Body */}
         <div className="p-6 space-y-6 max-w-7xl w-full mx-auto">
+
+          {/* Legal Disclaimer Banner */}
+          <LegalDisclaimerBanner dismissible />
 
           {/* ------------------------------------------------------------------ */}
           {/* TOP SECTION GRID: Health Check + Document Overview                */}

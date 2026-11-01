@@ -5,6 +5,9 @@ import { authenticateToken } from '../middleware/auth.middleware';
 const router = Router();
 const controller = new ReminderController();
 
+// Vercel Cron trigger endpoint (unauthenticated or verified via CRON_SECRET)
+router.get('/cron', (req, res, next) => controller.handleCronReminders(req, res, next));
+
 router.use(authenticateToken);
 
 router.get('/', (req, res, next) => controller.getReminders(req, res, next));

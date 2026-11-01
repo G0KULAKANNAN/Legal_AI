@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const baseURL = (import.meta as any).env?.VITE_API_URL || '/api';
+
 export const api = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_URL || '/api',
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -15,7 +17,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       originalRequest._retry = true;
       try {
-        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        const refreshEndpoint = baseURL.endsWith('/') ? `${baseURL}auth/refresh` : `${baseURL}/auth/refresh`;
+        await axios.post(refreshEndpoint, {}, { withCredentials: true });
         return api(originalRequest);
       } catch (refreshErr) {
         if (window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/') {

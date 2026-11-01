@@ -22,6 +22,7 @@ router.get('/', (req, res, next) => controller.getDocuments(req, res, next));
 router.get('/:id', (req, res, next) => controller.getDocumentById(req, res, next));
 router.delete('/:id', (req, res, next) => controller.deleteDocument(req, res, next));
 router.get('/:id/status', (req, res, next) => controller.getStatus(req, res, next));
+router.post('/:id/process', requireActiveSubscription, aiRateLimiter, (req, res, next) => controller.processDocument(req, res, next));
 
 // Protected Paid AI Features: REQUIRE ACTIVE SUBSCRIPTION (Premium ₹299/mo or Enterprise)
 router.post('/upload', requireActiveSubscription, aiRateLimiter, uploadMiddleware.single('file'), (req, res, next) => controller.uploadDocument(req, res, next));

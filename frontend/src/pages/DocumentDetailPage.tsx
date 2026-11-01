@@ -4,6 +4,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { VoicePlayer } from '../components/VoicePlayer';
 import { SubscriptionRequiredModal } from '../components/SubscriptionRequiredModal';
+import { LegalDisclaimerBanner } from '../components/LegalDisclaimerBanner';
 import { api } from '../api/axios';
 import { LegalDocument, Analysis, Clause, Risk, Charge, ImportantDate, TimelineEvent, FairnessAnalysis } from '../types';
 import {
@@ -568,6 +569,9 @@ ${a.risks && a.risks.length > 0
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
+        {/* Mandatory Legal Disclaimer Banner */}
+        <LegalDisclaimerBanner dismissible />
+
         {/* Navigation Tabs */}
         <div className="border-b border-slate-200 flex items-center space-x-2 overflow-x-auto pb-1 text-xs font-bold no-print print:hidden">
           {[
@@ -1362,6 +1366,18 @@ ${a.risks && a.risks.length > 0
                     <span>{chatLang === 'ta' ? 'அனுப்பு' : 'Send'}</span>
                   </button>
                 </form>
+
+                {/* AI Chat Legal Disclaimer */}
+                <div className="px-4 py-2 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center space-x-1.5">
+                    <Scale className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>
+                      {chatLang === 'ta'
+                        ? 'சட்ட மறுப்பு: AI பதில்கள் தகவல் நோக்கங்களுக்காக மட்டுமே. இது முறையான சட்ட ஆலோசனை அல்ல.'
+                        : 'AI Assistant Disclaimer: Responses are for general informational guidance only and do not constitute formal legal counsel.'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

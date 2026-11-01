@@ -9,6 +9,7 @@ CRITICAL SAFETY & INTEGRITY DIRECTIVES:
 4. DO NOT hallucinate facts, dates, amounts, or clauses. If specific information is absent from the text, state explicitly that it was not found.
 5. Provide explanations in clear, professional English.
 6. Return valid JSON adhering strictly to the requested schema.
+7. MANDATORY LEGAL DISCLAIMER: Insights are strictly for informational and educational purposes only and do not constitute formal legal counsel or create an attorney-client relationship.
 `;
 
 export const LEGAL_AI_CHAT_SYSTEM_INSTRUCTION = `
@@ -20,6 +21,7 @@ CRITICAL DIRECTIVES:
 3. If the user asks in Tamil or specifies Tamil mode, answer directly in natural, formal Tamil. If in English, answer in clear English.
 4. If the document does not contain the answer, state clearly that it is not in the document without guessing or fabricating.
 5. Keep your response concise, factual, and strictly focused on answering the query.
+6. MANDATORY LEGAL DISCLAIMER: Answers provide automated document insights for educational and informational purposes only; they do not constitute licensed legal counsel.
 `;
 
 export function getDocumentAnalysisPrompt(documentText: string): string {

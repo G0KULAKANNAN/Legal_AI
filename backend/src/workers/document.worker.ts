@@ -10,7 +10,27 @@ const pipelineService = new PipelineService();
 let queue: Queue | null = null;
 let worker: Worker | null = null;
 
-export function initQueueWorker(): { enqueueJob: (documentId: string) => Promise<void> } {
+export function initQueueWorker(): {
+  enqueueJob: (documentId: string) => Promise<void>;
+  processDirectly: (documentId: string) => Promise<void>;
+} {
+  const processDirectly = async (documentId: string) => {
+    logger.info(`[QueueWorker] Processing document ${documentId} directly`);
+    await pipelineService.processDocument(documentId);
+  };
+
+  // In Vercel serverless functions, avoid persistent BullMQ Redis workers
+  if (process.env.VERCEL) {
+    logger.info('[QueueWorker] Vercel environment detected. BullMQ Redis background worker disabled for serverless compatibility.');
+    return {
+      enqueueJob: async (documentId: string) => {
+        logger.info(`[QueueWorker] Vercel serverless mode: executing direct processing for ${documentId}`);
+        await processDirectly(documentId);
+      },
+      processDirectly,
+    };
+  }
+
   try {
     let redisAvailable = true;
 
@@ -62,6 +82,7 @@ export function initQueueWorker(): { enqueueJob: (documentId: string) => Promise
           setImmediate(() => pipelineService.processDocument(documentId));
         }
       },
+      processDirectly,
     };
   } catch (err: any) {
     logger.warn(`[QueueWorker] Failed to setup Redis queue: ${err.message}. Running in-process async execution.`);
@@ -71,6 +92,7 @@ export function initQueueWorker(): { enqueueJob: (documentId: string) => Promise
         logger.info(`[QueueWorker] Dispatching in-process async analysis for document ${documentId}`);
         setImmediate(() => pipelineService.processDocument(documentId));
       },
+      processDirectly,
     };
   }
 }
