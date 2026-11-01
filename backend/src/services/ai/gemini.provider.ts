@@ -111,7 +111,7 @@ export class GeminiProvider implements AIProvider {
           systemInstruction: LEGAL_AI_CHAT_SYSTEM_INSTRUCTION,
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 800,
+            maxOutputTokens: 1500,
           },
         });
 
@@ -125,8 +125,8 @@ export class GeminiProvider implements AIProvider {
         });
 
         const langDirective = lang === 'ta'
-          ? 'முக்கிய விதிமுறை: நீங்கள் கண்டிப்பாக தமிழில் மட்டுமே பதில் அளிக்க வேண்டும். கேட்கப்பட்ட கேள்விக்கு மட்டும் நேரடியாகவும் சுருக்கமாகவும் ஆவணத்தில் உள்ள உண்மையான விபரங்களை வைத்து பதிலளிக்கவும். தேவையற்ற பொதுவான முன்னுரைகள் அல்லது வாழ்த்துக்கள் வேண்டாம்.'
-          : 'CRITICAL DIRECTIVE: Answer strictly in English. Answer ONLY the specific question asked, concisely and factually based on the document context. Do not include conversational filler, greetings, or unsolicited boilerplate.';
+          ? 'முக்கிய விதிமுறை: நீங்கள் தமிழில் தெளிவான மற்றும் சட்டரீதியாக பயனுள்ள பதில்களை அளிக்க வேண்டும். ஆவணத்தின் விபரங்கள் மற்றும் தணிக்கை பகுப்பாய்வை (Audited Legal Analysis) முழுமையாக பயன்படுத்தி பதிலளிக்கவும். பயனர் வாழ்த்து (hello/வணக்கம்) தெரிவித்தால், சிநேகபூர்வமாக வரவேற்று ஆவணத்தை ஆய்வு செய்ய உதவ தயாராக உள்ளதாக கூறவும்.'
+          : 'CRITICAL DIRECTIVE: Answer in clear, professional English (or Tamil if the user asks in Tamil). Use both the Audited Legal Analysis and Document Text to provide thorough, helpful answers. When asked about risks, explain the identified risks and practical implications clearly. For greetings, respond warmly and invite their questions.';
 
         let promptText = message;
         if (documentContext && documentContext.trim().length > 0) {
