@@ -188,10 +188,11 @@ export class GeminiProvider implements AIProvider {
           generationConfig: {
             responseMimeType: 'application/json',
             temperature: 0.1,
+            maxOutputTokens: 2500,
           },
         });
 
-        const response = await model.generateContent([prompt, filePart]);
+        const response = await model.generateContent([filePart, prompt]);
         rawOutput = response.response.text() || '';
         return this.cleanJsonResponse(rawOutput);
       }, 'gemini-3.5-flash-lite');
@@ -229,6 +230,7 @@ export class GeminiProvider implements AIProvider {
           generationConfig: {
             responseMimeType: 'application/json',
             temperature: 0.1,
+            maxOutputTokens: 2500,
           },
         });
 
@@ -478,6 +480,11 @@ export class GeminiProvider implements AIProvider {
 
   private cleanJsonResponse(jsonStr: string): string {
     let clean = jsonStr.trim();
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      return clean.substring(firstBrace, lastBrace + 1);
+    }
     if (clean.startsWith('```json')) {
       clean = clean.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     } else if (clean.startsWith('```')) {

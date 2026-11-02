@@ -1,85 +1,119 @@
 import { z } from 'zod';
 
-export const RiskLevelSchema = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+export const RiskLevelSchema = z.preprocess((val) => {
+  const str = String(val || '').toUpperCase();
+  if (['HIGH', 'CRITICAL', 'SEVERE'].includes(str)) return 'HIGH';
+  if (['MEDIUM', 'MODERATE', 'MED'].includes(str)) return 'MEDIUM';
+  return 'LOW';
+}, z.enum(['LOW', 'MEDIUM', 'HIGH']));
+
+const ScoreSchema = z.preprocess((val) => {
+  const num = Number(val);
+  if (isNaN(num)) return 0.05;
+  if (num > 1) return Math.min(1, Math.max(0, num / 100));
+  return Math.min(1, Math.max(0, num));
+}, z.number());
+
+const FlexibleString = z.preprocess((val) => {
+  if (val === undefined || val === null) return '';
+  if (Array.isArray(val)) {
+    return val.map((x) => (typeof x === 'object' ? JSON.stringify(x) : String(x))).join(', ');
+  }
+  if (typeof val === 'object') {
+    return Object.entries(val).map(([k, v]) => `${k}: ${v}`).join('; ');
+  }
+  return String(val);
+}, z.string());
+
+const OptionalFlexibleString = z.preprocess((val) => {
+  if (val === undefined || val === null || val === '') return null;
+  if (Array.isArray(val)) {
+    return val.map((x) => (typeof x === 'object' ? JSON.stringify(x) : String(x))).join(', ');
+  }
+  if (typeof val === 'object') {
+    return Object.entries(val).map(([k, v]) => `${k}: ${v}`).join('; ');
+  }
+  return String(val);
+}, z.string().nullable().optional());
 
 export const ClauseSchema = z.object({
-  title: z.string(),
-  category: z.string(),
-  extractedText: z.string(),
+  title: FlexibleString,
+  category: FlexibleString,
+  extractedText: FlexibleString,
   pageNumber: z.number().optional().nullable(),
-  explanationPlain: z.string(),
-  explanationTamil: z.string(),
+  explanationPlain: FlexibleString,
+  explanationTamil: FlexibleString,
   riskLevel: RiskLevelSchema,
-  confidence: z.number().min(0).max(1).default(0.9),
-  sourceRef: z.string().optional().nullable(),
+  confidence: ScoreSchema.default(0.9),
+  sourceRef: OptionalFlexibleString,
 });
 
 export const RiskSchema = z.object({
   riskLevel: RiskLevelSchema,
-  title: z.string(),
-  reasonPlain: z.string(),
-  reasonTamil: z.string(),
-  sourceRef: z.string().optional().nullable(),
-  suggestedNegotiation: z.string().optional().nullable(),
+  title: FlexibleString,
+  reasonPlain: FlexibleString,
+  reasonTamil: FlexibleString,
+  sourceRef: OptionalFlexibleString,
+  suggestedNegotiation: OptionalFlexibleString,
 });
 
 export const ChargeSchema = z.object({
-  name: z.string(),
-  amountCondition: z.string(),
-  sourceRef: z.string().optional().nullable(),
-  explanation: z.string(),
+  name: FlexibleString,
+  amountCondition: FlexibleString,
+  sourceRef: OptionalFlexibleString,
+  explanation: FlexibleString,
 });
 
 export const PenaltySchema = z.object({
-  triggerCondition: z.string(),
-  penaltyAmountOrTerm: z.string(),
-  sourceRef: z.string().optional().nullable(),
-  explanation: z.string(),
+  triggerCondition: FlexibleString,
+  penaltyAmountOrTerm: FlexibleString,
+  sourceRef: OptionalFlexibleString,
+  explanation: FlexibleString,
 });
 
 export const ImportantDateSchema = z.object({
-  dateString: z.string(),
-  eventType: z.string(),
-  explanation: z.string(),
-  sourceRef: z.string().optional().nullable(),
+  dateString: FlexibleString,
+  eventType: FlexibleString,
+  explanation: FlexibleString,
+  sourceRef: OptionalFlexibleString,
 });
 
 export const TimelineEventSchema = z.object({
-  sequenceOrder: z.number(),
-  eventDate: z.string().optional().nullable(),
-  title: z.string(),
-  description: z.string(),
-  sourceRef: z.string().optional().nullable(),
+  sequenceOrder: z.preprocess((v) => Number(v) || 1, z.number()),
+  eventDate: OptionalFlexibleString,
+  title: FlexibleString,
+  description: FlexibleString,
+  sourceRef: OptionalFlexibleString,
 });
 
 export const FairnessAnalysisSchema = z.object({
-  clauseTitle: z.string(),
-  benchmarkCategory: z.string(),
-  imbalanceScore: z.number().min(0).max(1), // 0 = very unfair/one-sided, 1 = very fair
-  reason: z.string(),
-  evidence: z.string(),
-  suggestedAlternative: z.string().optional().nullable(),
+  clauseTitle: FlexibleString,
+  benchmarkCategory: FlexibleString,
+  imbalanceScore: ScoreSchema, // 0 = very unfair/one-sided, 1 = very fair
+  reason: FlexibleString,
+  evidence: FlexibleString,
+  suggestedAlternative: OptionalFlexibleString,
 });
 
 export const DocumentAnalysisSchema = z.object({
-  documentType: z.string(),
-  partiesInvolved: z.string().optional().nullable(),
-  summaryPlain: z.string(),
-  summaryTamil: z.string(),
-  summaryDetailed: z.string(),
-  structuredSummary: z.string().optional().nullable(),
-  structuredSummaryTamil: z.string().optional().nullable(),
-  whatYouAreAgreeingTo: z.string(),
-  financialSummary: z.string(),
-  scamScore: z.number().min(0).max(1).default(0),
-  scamAnalysis: z.string().optional().nullable(),
-  clauses: z.array(ClauseSchema),
-  risks: z.array(RiskSchema),
-  charges: z.array(ChargeSchema),
-  penalties: z.array(PenaltySchema),
-  importantDates: z.array(ImportantDateSchema),
-  timelineEvents: z.array(TimelineEventSchema),
-  fairnessAnalyses: z.array(FairnessAnalysisSchema),
+  documentType: FlexibleString,
+  partiesInvolved: OptionalFlexibleString,
+  summaryPlain: FlexibleString,
+  summaryTamil: FlexibleString,
+  summaryDetailed: FlexibleString,
+  structuredSummary: OptionalFlexibleString,
+  structuredSummaryTamil: OptionalFlexibleString,
+  whatYouAreAgreeingTo: FlexibleString,
+  financialSummary: FlexibleString,
+  scamScore: ScoreSchema.default(0.05),
+  scamAnalysis: OptionalFlexibleString,
+  clauses: z.array(ClauseSchema).default([]),
+  risks: z.array(RiskSchema).default([]),
+  charges: z.array(ChargeSchema).default([]),
+  penalties: z.array(PenaltySchema).default([]),
+  importantDates: z.array(ImportantDateSchema).default([]),
+  timelineEvents: z.array(TimelineEventSchema).default([]),
+  fairnessAnalyses: z.array(FairnessAnalysisSchema).default([]),
 });
 
 export type DocumentAnalysisResult = z.infer<typeof DocumentAnalysisSchema>;

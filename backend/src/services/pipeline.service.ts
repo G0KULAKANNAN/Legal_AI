@@ -46,7 +46,11 @@ export class PipelineService {
         fullText = parsed.fullText;
         pagesData = parsed.pages;
 
-        if (!parsed.requiresOcr && fullText.trim().length >= 50) {
+        const pageCount = Math.max(1, pagesData.length);
+        const charsPerPage = fullText.length / pageCount;
+        const hasSubstantialText = !parsed.requiresOcr && fullText.trim().length >= 300 && charsPerPage >= 80;
+
+        if (hasSubstantialText) {
           logger.info(`[PipelineService] Extracted ${fullText.length} text characters from digital PDF.`);
           await prisma.document.update({
             where: { id: documentId },
@@ -54,8 +58,8 @@ export class PipelineService {
           });
           analysisResult = await this.aiProvider.analyzeDocument(fullText, doc.detectedType || undefined);
         } else {
-          // Scanned PDF (e.g. DocScanner): Use Gemini Multimodal Vision directly on raw PDF buffer
-          logger.info(`[PipelineService] Scanned PDF detected (chars: ${fullText.length}). Running Gemini multimodal analysis on raw PDF buffer...`);
+          // Scanned PDF (e.g. DocScanner / Land documents / Deeds): Use Gemini Multimodal Vision directly on raw PDF buffer
+          logger.info(`[PipelineService] Scanned / image-based PDF detected (chars: ${fullText.length}, pages: ${pageCount}). Running Gemini multimodal analysis on raw PDF buffer...`);
           await prisma.document.update({
             where: { id: documentId },
             data: { status: DocumentStatus.ANALYZING },
@@ -69,7 +73,7 @@ export class PipelineService {
               doc.detectedType || undefined
             );
           } else {
-            analysisResult = await this.aiProvider.analyzeDocument(fullText || 'Scanned Legal Document', doc.detectedType || undefined);
+            analysisResult = await this.aiProvider.analyzeDocument(fullText || 'Legal Document', doc.detectedType || undefined);
           }
 
           const reconstructedText = `${analysisResult.summaryPlain}\n\n${analysisResult.whatYouAreAgreeingTo || ''}\n\n${analysisResult.financialSummary || ''}`;

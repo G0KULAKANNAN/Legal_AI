@@ -43,40 +43,33 @@ CRITICAL DIRECTIVES:
 export function getDocumentAnalysisPrompt(documentText: string): string {
   return `${SYSTEM_SECURITY_INSTRUCTION}
 
-TASK: Perform an exhaustive, high-precision legal document analysis on the text provided below.
+TASK: Perform a high-precision, rapid legal document intelligence audit on the attached contract / document.
 
-CRITICAL INSTRUCTIONS FOR EXCEPTIONAL SUMMARY QUALITY:
-1. Identify the exact Document Type (e.g. Land Sale Deed / கிரைய பத்திரம், Patta / Chitta Order, Property Settlement Deed, House Rental Agreement, Commercial Lease Agreement, Job Offer Letter, Employment Contract, Loan Agreement, General Power of Attorney).
-2. Extract the Parties Involved in 'partiesInvolved' (e.g. "Seller/Vendor: [Name, Details], Buyer/Purchaser: [Name, Details]" or "Landlord/Lessor: [Name], Tenant/Lessee: [Name]"). Always extract executing names, addresses, and survey numbers/property details if present.
-3. Write a comprehensive, crystal-clear Executive Summary in Plain English in 'summaryPlain'. For land/property documents, clearly state property location, survey number, area/extent (sqft/cents/acres), consideration price, and title rights transferred.
-4. Write an equally thorough, natural, formal Tamil summary in 'summaryTamil' (சட்ட ஆவண முழுமையான தமிழ் சுருக்கம்). நில ஆவணமாக இருப்பின் சர்வே எண் (Survey Number), கிராமம், நிலப்பரப்பு, கிரையத் தொகை, மற்றும் வாங்குபவர்/விற்பவர் விவரங்களை தெளிவாக குறிப்பிடவும்.
-5. Provide a Detailed Summary in 'summaryDetailed' elaborating on operational guidelines, maintenance responsibilities, breach consequences, dispute resolution mechanisms, and legal jurisdiction.
-6. Detail "What You Are Agreeing To" (the core commitments required of the signing party) as clear, itemized points in 'whatYouAreAgreeingTo'.
-7. Summarize all Financial Terms (deposits, rent, salary, fees, payment schedule, refunds) with exact figures in 'financialSummary'.
-8. Generate a complete 10-point structured Markdown breakdown in 'structuredSummary' and 'structuredSummaryTamil'.
-9. Flag suspicious scam indicators if any inconsistent names, impossible dates, missing signatures, or contradictory terms exist (set scamScore between 0.0 and 1.0, default 0.05).
-10. Extract key Clauses (Rent/Salary, Deposit, Notice Period, Termination, Penalty, Renewal, Liability, Indemnity, Maintenance, Governing Law, etc.). For each clause, provide 'explanationPlain' and 'explanationTamil'.
-11. Detect Risks (LOW, MEDIUM, HIGH) with exact reasons in English ('reasonPlain') and Tamil ('reasonTamil') with source quotes/references.
-12. Extract Hidden Charges (maintenance, processing, late fees, cancellation fees, taxes).
-13. Extract Penalties (late payment fees, early termination fees, breach penalties).
-14. Extract Important Dates & Deadlines in 'importantDates'.
-15. Build a chronological Legal Timeline in 'timelineEvents' (sequenceOrder starting at 1).
-16. Perform Clause Fairness Analysis in 'fairnessAnalyses' (imbalanceScore between 0.0 and 1.0).
+CRITICAL EXTRACTION DIRECTIVES:
+1. Exact Document Type: Identify accurately (e.g. Land Sale Deed (கிரைய பத்திரம்), Patta / Chitta Order, Property Settlement Deed, House Rental Agreement, Job Offer Letter, Loan Agreement, Commercial Lease).
+2. Parties Involved: Extract full legal names, roles (Vendor/Seller, Purchaser/Buyer, Landlord/Tenant, Employer/Employee), parentage, addresses, and property/identification numbers.
+3. Plain Summary ('summaryPlain'): Crystal-clear 2-3 paragraph breakdown. For land/property documents, detail exact Survey Number, Patta Number, Village/Taluk/District, property dimensions/area (sqft/cents/acres), total consideration price, and title covenants. For rental/employment, state rent/salary, deposit, and term.
+4. Formal Tamil Summary ('summaryTamil'): விரிவான தெளிவான தமிழ் சுருக்கம் (விற்பவர்/வாங்குபவர் விவரங்கள், சர்வே எண், நிலப்பரப்பு, கிரையத் தொகை, முன்பணம், முக்கிய நிபந்தனைகள்).
+5. Detailed Legal Summary ('summaryDetailed'): Explain operational covenants, title guarantees, breach consequences, dispute resolution, and jurisdiction.
+6. Core Obligations ('whatYouAreAgreeingTo'): Clear bulleted obligations required of the signing party.
+7. Financial Terms ('financialSummary'): State exact numbers (total consideration/rent, deposit, taxes, stamp duty, advance paid, balance schedule).
+8. Scam / Fraud Indicators ('scamScore' 0.0 to 1.0, default 0.05, 'scamAnalysis'): Flag any missing parent documents, boundary inconsistencies, forged/missing stamps, or one-sided traps.
+9. Key Clauses ('clauses'): Extract 3 to 8 key clauses with title, category, extractedText, plain explanation, and riskLevel.
+10. Legal Risks ('risks'): Flag 1 to 5 practical concerns (LOW, MEDIUM, HIGH) with exact reasons and negotiation tips.
+11. Charges, Penalties, Dates, Timeline, and Fairness Analysis.
 
 DOCUMENT CONTENT TO ANALYZE:
 ---
 ${documentText}
 ---
 
-Return ONLY valid JSON matching this exact structure:
+Return ONLY valid JSON:
 {
   "documentType": "string",
   "partiesInvolved": "string",
   "summaryPlain": "string",
   "summaryTamil": "string",
   "summaryDetailed": "string",
-  "structuredSummary": "string",
-  "structuredSummaryTamil": "string",
   "whatYouAreAgreeingTo": "string",
   "financialSummary": "string",
   "scamScore": 0.05,
