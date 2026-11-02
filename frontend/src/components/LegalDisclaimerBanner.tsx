@@ -23,7 +23,7 @@ export const LegalDisclaimerBanner: React.FC<LegalDisclaimerBannerProps> = ({
         <div className="flex items-center space-x-2">
           <Scale className="w-4 h-4 text-amber-600 shrink-0" />
           <span className="font-medium">
-            <strong className="font-bold text-amber-950">Legal Disclaimer:</strong> Automated AI insights are for informational and educational purposes only and do not constitute formal legal counsel. Always consult a licensed attorney before signing.
+            <strong className="font-bold text-amber-950">Disclaimer:</strong> AI can make mistakes. Please verify important information and contract details before signing.
           </span>
         </div>
         {dismissible && (
@@ -57,13 +57,13 @@ export const LegalDisclaimerBanner: React.FC<LegalDisclaimerBannerProps> = ({
             </div>
             
             <p className="text-xs leading-relaxed text-amber-950 font-normal">
-              <strong>LegalAI is an AI-powered document intelligence tool, not a law firm.</strong> Insights, risk classifications, benchmarks, and counter-proposals provided on this platform are for informational and educational purposes only. They do not constitute formal legal counsel, statutory legal opinions, or an attorney-client relationship. Always review binding agreements with a licensed legal practitioner or advocate before executing.
+              <strong>Disclaimer: AI can make mistakes.</strong> LegalAI provides AI-generated document insights and risk assessments for informational and educational purposes only. Always verify critical terms, obligations, and contract details before signing.
             </p>
 
             {showTamil && (
               <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 text-xs text-amber-900 leading-relaxed font-normal bg-amber-100/40 p-2.5 rounded-xl">
                 <p>
-                  <strong>சட்ட மறுப்புரை:</strong> LegalAI என்பது செயற்கை நுண்ணறிவு சார்ந்த ஆவண பகுப்பாய்வு தளம் மட்டுமே. இது சட்ட ஆலோசனை மையம் அல்ல. இங்கு வழங்கப்படும் இடர் கணிப்புகள் மற்றும் சுருக்கங்கள் கல்வி மற்றும் தகவல் நோக்கங்களுக்காக மட்டுமே. கையொப்பமிடுவதற்கு முன் தகுதியான வழக்கறிஞரை அணுகி ஆலோசனை பெறவும்.
+                  <strong>கவனத்திற்கு:</strong> AI தவறுகள் செய்யக்கூடும் (AI can make mistakes). இங்கு வழங்கப்படும் பகுப்பாய்வு வழிகாட்டுதலுக்கு மட்டுமே. கையொப்பமிடுவதற்கு முன் முக்கியமான ஒப்பந்த விவரங்களை சரிபார்த்துக் கொள்ளவும்.
                 </p>
               </div>
             )}

@@ -1373,8 +1373,8 @@ ${a.risks && a.risks.length > 0
                     <Scale className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                     <span>
                       {chatLang === 'ta'
-                        ? 'சட்ட மறுப்பு: AI பதில்கள் தகவல் நோக்கங்களுக்காக மட்டுமே. இது முறையான சட்ட ஆலோசனை அல்ல.'
-                        : 'AI Assistant Disclaimer: Responses are for general informational guidance only and do not constitute formal legal counsel.'}
+                        ? 'கவனத்திற்கு: AI தவறுகள் செய்யக்கூடும். பதில்கள் தகவல் நோக்கங்களுக்காக மட்டுமே.'
+                        : 'AI can make mistakes. Responses are for informational guidance only—please verify critical details.'}
                     </span>
                   </div>
                 </div>

@@ -313,7 +313,7 @@ export class ReportService {
         checkPageBreak(32);
         pdf.fillColor('#64748b').fontSize(6.5).font('Helvetica')
           .text(
-            'MANDATORY LEGAL DISCLAIMER: LegalAI provides automated document intelligence for informational and educational purposes only. It does not constitute formal legal counsel. Always review binding agreements with a qualified legal professional before signing.',
+            'DISCLAIMER: AI can make mistakes. LegalAI provides automated document analysis for informational purposes only. Always verify important terms and contract details before signing.',
             margin,
             pdf.y + 4,
             { width: contentWidth, align: 'justify', lineGap: 1.5 }

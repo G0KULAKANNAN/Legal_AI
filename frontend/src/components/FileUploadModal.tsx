@@ -162,7 +162,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
           <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-[11px] text-amber-900 flex items-start space-x-2">
             <Scale className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <span className="leading-relaxed">
-              <strong>Legal Disclaimer:</strong> LegalAI provides AI-assisted document clarity and risk analysis for informational and educational purposes only. It is not legal counsel. Always review binding contracts with a licensed advocate.
+              <strong>Disclaimer:</strong> AI can make mistakes. LegalAI provides AI-assisted analysis for informational purposes only. Please verify important details before signing.
             </span>
           </div>
 
