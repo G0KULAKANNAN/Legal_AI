@@ -363,6 +363,24 @@ export const DashboardPage: React.FC = () => {
 
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
+                          {doc.status === 'FAILED' && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await api.post(`/documents/${doc.id}/process`);
+                                  fetchDocuments();
+                                } catch {
+                                  alert('Processing retry started. Please wait a moment.');
+                                  fetchDocuments();
+                                }
+                              }}
+                              className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200"
+                              title="Retry Analysis"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          )}
                           <Link
                             to={`/documents/${doc.id}`}
                             onClick={(e) => e.stopPropagation()}
