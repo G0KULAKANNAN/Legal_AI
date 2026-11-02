@@ -19,7 +19,13 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      if (selectedFile.size > 4.5 * 1024 * 1024) {
+        setError(`File size (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB) exceeds 4.5 MB. Vercel Serverless limit is 4.5 MB.`);
+        setFile(null);
+        return;
+      }
+      setFile(selectedFile);
       setError(null);
     }
   };
@@ -28,7 +34,13 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
+      const selectedFile = e.dataTransfer.files[0];
+      if (selectedFile.size > 4.5 * 1024 * 1024) {
+        setError(`File size (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB) exceeds 4.5 MB. Vercel Serverless limit is 4.5 MB.`);
+        setFile(null);
+        return;
+      }
+      setFile(selectedFile);
       setError(null);
     }
   };
@@ -36,6 +48,11 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
+
+    if (file.size > 4.5 * 1024 * 1024) {
+      setError(`File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 4.5 MB. Please select a file under 4.5 MB.`);
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -53,7 +70,18 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
         onClose();
       }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to upload document. Please check file format and try again.');
+      const resData = err.response?.data;
+      const serverMsg = resData?.error?.message || resData?.message || (typeof resData === 'string' ? resData : null);
+
+      if (err.response?.status === 413 || (serverMsg && serverMsg.includes('FUNCTION_PAYLOAD_TOO_LARGE'))) {
+        setError('File size too large for Vercel deployment (maximum 4.5 MB). Please select a lighter document.');
+      } else if (err.response?.status === 504 || (serverMsg && serverMsg.includes('FUNCTION_INVOCATION_TIMEOUT'))) {
+        setError('Document processing timed out on cloud server. The file was received and background analysis is running.');
+      } else if (serverMsg && serverMsg.includes('An error occurred with your deployment')) {
+        setError('Cloud execution error. Please ensure Supabase Storage bucket and environment variables are active in Vercel.');
+      } else {
+        setError(serverMsg || 'Failed to upload document. Please check file format and try again.');
+      }
     } finally {
       setUploading(false);
     }
@@ -118,7 +146,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
               <div className="space-y-2">
                 <Upload className="w-8 h-8 text-slate-400 mx-auto" />
                 <p className="text-xs font-bold text-slate-800">Click or drag document file here</p>
-                <p className="text-[11px] text-slate-500">Supports PDF, DOCX, PNG, JPG (Up to 25MB)</p>
+                <p className="text-[11px] text-slate-500">Supports PDF, DOCX, PNG, JPG (Up to 4.5 MB for Cloud Deployment)</p>
               </div>
             )}
           </div>

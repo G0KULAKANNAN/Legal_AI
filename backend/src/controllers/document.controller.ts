@@ -56,8 +56,10 @@ export class DocumentController {
         },
       });
 
-      // Enqueue job to background queue
-      await workerService.enqueueJob(document.id);
+      // Enqueue job to background queue (non-blocking for instant response)
+      workerService.enqueueJob(document.id).catch((err) => {
+        logger.error(`[DocumentController] Background job enqueue failed for ${document.id}: ${err.message}`);
+      });
 
       // Increment monthly document usage counter for subscription
       await subscriptionService.incrementUsage(userId);
@@ -75,6 +77,10 @@ export class DocumentController {
       const doc = await prisma.document.findFirst({ where: { id, userId } });
       if (!doc) {
         throw new NotFoundError('Document not found');
+      }
+
+      if (doc.status === DocumentStatus.COMPLETED || doc.status === DocumentStatus.ANALYZING) {
+        return sendSuccess(res, doc, 'Document analysis is already active or completed.');
       }
 
       await workerService.processDirectly(doc.id);

@@ -38,43 +38,81 @@ export class PipelineService {
 
       let fullText = '';
       let pagesData: { pageNumber: number; text: string; hasOcr?: boolean }[] = [];
+      let analysisResult: any;
 
-      // Step 3: Text extraction
+      // Step 3: Text extraction & Document processing
       if (doc.mimeType === 'application/pdf') {
         const parsed = await this.pdfParser.parse(buffer);
         fullText = parsed.fullText;
         pagesData = parsed.pages;
 
-        if (parsed.requiresOcr || fullText.trim().length < 50) {
-          logger.info(`[PipelineService] PDF requires OCR. Running Tesseract OCR for doc ID: ${documentId}`);
+        if (!parsed.requiresOcr && fullText.trim().length >= 50) {
+          logger.info(`[PipelineService] Extracted ${fullText.length} text characters from digital PDF.`);
           await prisma.document.update({
             where: { id: documentId },
-            data: { status: DocumentStatus.OCR },
+            data: { status: DocumentStatus.ANALYZING },
+          });
+          analysisResult = await this.aiProvider.analyzeDocument(fullText, doc.detectedType || undefined);
+        } else {
+          // Scanned PDF (e.g. DocScanner): Use Gemini Multimodal Vision directly on raw PDF buffer
+          logger.info(`[PipelineService] Scanned PDF detected (chars: ${fullText.length}). Running Gemini multimodal analysis on raw PDF buffer...`);
+          await prisma.document.update({
+            where: { id: documentId },
+            data: { status: DocumentStatus.ANALYZING },
           });
 
-          const ocrText = await this.ocrProvider.processImage(buffer, 'eng+tam');
-          fullText = ocrText || fullText;
-          pagesData = [{ pageNumber: 1, text: fullText, hasOcr: true }];
+          if (this.aiProvider.analyzeDocumentWithBuffer) {
+            analysisResult = await this.aiProvider.analyzeDocumentWithBuffer(
+              buffer,
+              doc.mimeType,
+              fullText,
+              doc.detectedType || undefined
+            );
+          } else {
+            analysisResult = await this.aiProvider.analyzeDocument(fullText || 'Scanned Legal Document', doc.detectedType || undefined);
+          }
+
+          const reconstructedText = `${analysisResult.summaryPlain}\n\n${analysisResult.whatYouAreAgreeingTo || ''}\n\n${analysisResult.financialSummary || ''}`;
+          pagesData = [{ pageNumber: 1, text: reconstructedText, hasOcr: true }];
+          fullText = reconstructedText;
         }
+      } else if (doc.mimeType.startsWith('image/')) {
+        logger.info(`[PipelineService] Image document detected. Running Gemini multimodal analysis on image buffer...`);
+        await prisma.document.update({
+          where: { id: documentId },
+          data: { status: DocumentStatus.ANALYZING },
+        });
+
+        if (this.aiProvider.analyzeDocumentWithBuffer) {
+          analysisResult = await this.aiProvider.analyzeDocumentWithBuffer(
+            buffer,
+            doc.mimeType,
+            '',
+            doc.detectedType || undefined
+          );
+        } else {
+          analysisResult = await this.aiProvider.analyzeDocument('Scanned Image Document', doc.detectedType || undefined);
+        }
+
+        const reconstructedText = `${analysisResult.summaryPlain}\n\n${analysisResult.whatYouAreAgreeingTo || ''}\n\n${analysisResult.financialSummary || ''}`;
+        pagesData = [{ pageNumber: 1, text: reconstructedText, hasOcr: true }];
+        fullText = reconstructedText;
       } else if (doc.mimeType.includes('wordprocessingml') || doc.originalName.endsWith('.docx')) {
         const parsed = await this.docxParser.parse(buffer);
         fullText = parsed.fullText;
         pagesData = parsed.pages;
-      } else if (doc.mimeType.startsWith('image/')) {
-        logger.info(`[PipelineService] Image document detected. Running OCR for doc ID: ${documentId}`);
+
         await prisma.document.update({
           where: { id: documentId },
-          data: { status: DocumentStatus.OCR },
+          data: { status: DocumentStatus.ANALYZING },
         });
-
-        fullText = await this.ocrProvider.processImage(buffer, 'eng+tam');
-        pagesData = [{ pageNumber: 1, text: fullText, hasOcr: true }];
+        analysisResult = await this.aiProvider.analyzeDocument(fullText, doc.detectedType || undefined);
       } else {
         throw new Error(`Unsupported document MIME type: ${doc.mimeType}`);
       }
 
-      if (!fullText || fullText.trim().length === 0) {
-        throw new Error('Could not extract legible text from document.');
+      if (!analysisResult) {
+        throw new Error('Could not analyze legal document.');
       }
 
       // Step 4: Save pages to DB
@@ -89,15 +127,6 @@ export class PipelineService {
           },
         });
       }
-
-      // Step 5: Update status to ANALYZING
-      await prisma.document.update({
-        where: { id: documentId },
-        data: { status: DocumentStatus.ANALYZING },
-      });
-
-      // Step 6: Gemini AI Analysis
-      const analysisResult = await this.aiProvider.analyzeDocument(fullText, doc.detectedType || undefined);
 
       // Step 7: Save structured analysis in DB transaction
       await prisma.$transaction(async (tx) => {

@@ -85,6 +85,13 @@ export const DashboardPage: React.FC = () => {
         );
         if (hasProcessing) {
           fetchDocuments();
+
+          // Auto-trigger analysis for newly uploaded documents in serverless environment
+          prevDocs.forEach((doc) => {
+            if (doc.status === 'UPLOADED') {
+              api.post(`/documents/${doc.id}/process`).catch(() => {});
+            }
+          });
         }
         return prevDocs;
       });

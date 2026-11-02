@@ -21,11 +21,15 @@ export function initQueueWorker(): {
 
   // In Vercel serverless functions, avoid persistent BullMQ Redis workers
   if (process.env.VERCEL) {
-    logger.info('[QueueWorker] Vercel environment detected. BullMQ Redis background worker disabled for serverless compatibility.');
+    logger.info('[QueueWorker] Vercel serverless mode detected. BullMQ Redis background worker disabled for serverless compatibility.');
     return {
       enqueueJob: async (documentId: string) => {
-        logger.info(`[QueueWorker] Vercel serverless mode: executing direct processing for ${documentId}`);
-        await processDirectly(documentId);
+        logger.info(`[QueueWorker] Vercel serverless mode: dispatching async background processing for ${documentId}`);
+        setImmediate(() => {
+          processDirectly(documentId).catch((err) => {
+            logger.error(`[QueueWorker] Background processing failed for ${documentId}: ${err.message}`);
+          });
+        });
       },
       processDirectly,
     };

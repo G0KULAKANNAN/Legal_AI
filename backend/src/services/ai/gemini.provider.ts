@@ -33,7 +33,7 @@ export class GeminiProvider implements AIProvider {
   }
 
   private getModelName(): string {
-    return config.gemini.model || 'gemini-3.5-flash';
+    return config.gemini.model || 'gemini-1.5-flash';
   }
 
   private validateApiKey(): void {
@@ -67,9 +67,10 @@ export class GeminiProvider implements AIProvider {
     const primaryModel = preferredModel || this.getModelName();
     const fallbackModels = [
       primaryModel,
-      'gemini-3.5-flash-lite',
-      'gemini-3.5-flash',
-      'gemini-3.8-flash'
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-8b',
+      'gemini-1.5-pro'
     ];
     const uniqueModels = Array.from(new Set(fallbackModels));
 
@@ -151,6 +152,58 @@ export class GeminiProvider implements AIProvider {
     }
   }
 
+  async analyzeDocumentWithBuffer(
+    buffer: Buffer,
+    mimeType: string,
+    extractedTextSnippet = '',
+    _documentType?: string
+  ): Promise<DocumentAnalysisResult> {
+    logger.info(`[GeminiProvider] Starting multimodal document analysis (buffer size: ${buffer.length} bytes, mimeType: ${mimeType})...`);
+
+    const contextPrefix = extractedTextSnippet && extractedTextSnippet.trim().length > 0
+      ? `Partially extracted document text:\n${extractedTextSnippet.substring(0, 10000)}\n\n`
+      : '';
+    const prompt = getDocumentAnalysisPrompt(`${contextPrefix}[ANALYZE ALL PAGES, CLAUSES, AND CONTENT FROM THE ATTACHED SCANNED DOCUMENT MULTIMODAL BUFFER]`);
+
+    let rawOutput = '';
+    try {
+      const apiKey = config.gemini.apiKey;
+      if (!apiKey || apiKey.trim() === '' || apiKey.includes('your_gemini_api_key') || apiKey.includes('mock_or_real')) {
+        return this.getFallbackAnalysis(extractedTextSnippet || 'Scanned Legal Document');
+      }
+
+      const filePart = {
+        inlineData: {
+          data: buffer.toString('base64'),
+          mimeType,
+        },
+      };
+
+      const cleanJson = await this.callGeminiWithFallback(async (modelName) => {
+        const model = this.genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        });
+
+        const response = await model.generateContent([prompt, filePart]);
+        rawOutput = response.response.text() || '';
+        return this.cleanJsonResponse(rawOutput);
+      });
+
+      const parsed = JSON.parse(cleanJson);
+      return this.normalizeAndValidateAnalysis(parsed, extractedTextSnippet || 'Scanned Legal Document');
+    } catch (err: any) {
+      logger.error(`[GeminiProvider] Multimodal Gemini analysis failed: ${err.message}`);
+      if (rawOutput) {
+        logger.debug(`[GeminiProvider] Raw output snippet: ${rawOutput.substring(0, 500)}`);
+      }
+      return this.analyzeDocument(extractedTextSnippet || 'Scanned Legal Document', _documentType);
+    }
+  }
+
   async analyzeDocument(fullText: string, _documentType?: string): Promise<DocumentAnalysisResult> {
     logger.info(`[GeminiProvider] Starting document analysis (input length: ${fullText.length} chars)...`);
 
@@ -179,73 +232,7 @@ export class GeminiProvider implements AIProvider {
       });
 
       const parsed = JSON.parse(cleanJson);
-
-      // Normalization of parsed output to ensure robust schema compatibility
-      parsed.partiesInvolved = parsed.partiesInvolved || parsed.parties || null;
-      parsed.summaryPlain = parsed.summaryPlain || parsed.quickSummary || parsed.summary || 'Summary unavailable.';
-      parsed.summaryDetailed = parsed.summaryDetailed || parsed.detailedSummary || parsed.summaryPlain;
-      parsed.structuredSummary = parsed.structuredSummary || null;
-      parsed.structuredSummaryTamil = parsed.structuredSummaryTamil || null;
-      if (!parsed.summaryTamil && parsed.summaryPlain) {
-        parsed.summaryTamil = this.generateOfflineTamilSummary(parsed.summaryPlain);
-      }
-      if (Array.isArray(parsed.whatYouAreAgreeingTo)) {
-        parsed.whatYouAreAgreeingTo = parsed.whatYouAreAgreeingTo.join('\n• ');
-      } else if (!parsed.whatYouAreAgreeingTo) {
-        parsed.whatYouAreAgreeingTo = 'Standard obligations as outlined in the document.';
-      }
-      parsed.financialSummary = parsed.financialSummary || 'Standard financial terms apply.';
-      parsed.documentType = parsed.documentType || 'Legal Agreement';
-      parsed.scamScore = typeof parsed.scamScore === 'number' ? parsed.scamScore : 0.05;
-      
-      parsed.clauses = Array.isArray(parsed.clauses) ? parsed.clauses.map((c: any) => ({
-        title: c.title || 'General Clause',
-        category: c.category || 'General',
-        extractedText: c.extractedText || c.title || '',
-        pageNumber: typeof c.pageNumber === 'number' ? c.pageNumber : 1,
-        explanationPlain: c.explanationPlain || c.explanation || c.title || '',
-        explanationTamil: c.explanationTamil || c.explanationPlain || '',
-        riskLevel: ['LOW', 'MEDIUM', 'HIGH'].includes(c.riskLevel) ? c.riskLevel : 'LOW',
-        confidence: typeof c.confidence === 'number' ? c.confidence : 0.95,
-        sourceRef: c.sourceRef || 'Document',
-      })) : [];
-
-      parsed.risks = Array.isArray(parsed.risks) ? parsed.risks.map((r: any) => ({
-        riskLevel: ['LOW', 'MEDIUM', 'HIGH'].includes(r.riskLevel) ? r.riskLevel : 'LOW',
-        title: r.title || 'Document Consideration',
-        reasonPlain: r.reasonPlain || r.reason || r.description || '',
-        reasonTamil: r.reasonTamil || r.reasonPlain || '',
-        sourceRef: r.sourceRef || 'General',
-        suggestedNegotiation: r.suggestedNegotiation || null,
-      })) : [];
-
-      parsed.charges = Array.isArray(parsed.charges) ? parsed.charges : [];
-      parsed.penalties = Array.isArray(parsed.penalties) ? parsed.penalties : [];
-      parsed.importantDates = Array.isArray(parsed.importantDates) ? parsed.importantDates.map((d: any) => ({
-        dateString: d.dateString || d.date || 'Execution Date',
-        eventType: d.eventType || d.event || 'Milestone',
-        explanation: d.explanation || d.description || '',
-        sourceRef: d.sourceRef || null,
-      })) : [];
-      parsed.timelineEvents = Array.isArray(parsed.timelineEvents) ? parsed.timelineEvents.map((t: any, idx: number) => ({
-        sequenceOrder: typeof t.sequenceOrder === 'number' ? t.sequenceOrder : idx + 1,
-        eventDate: t.eventDate || t.date || null,
-        title: t.title || `Stage ${idx + 1}`,
-        description: t.description || '',
-        sourceRef: t.sourceRef || null,
-      })) : [];
-      parsed.fairnessAnalyses = Array.isArray(parsed.fairnessAnalyses) ? parsed.fairnessAnalyses.map((f: any) => ({
-        clauseTitle: f.clauseTitle || f.title || 'Standard Clause',
-        benchmarkCategory: f.benchmarkCategory || 'Standard',
-        imbalanceScore: typeof f.imbalanceScore === 'number' ? f.imbalanceScore : 0.85,
-        reason: f.reason || 'Standard balanced terms.',
-        evidence: f.evidence || '',
-        suggestedAlternative: f.suggestedAlternative || null,
-      })) : [];
-
-      const validated = DocumentAnalysisSchema.parse(parsed);
-      logger.info(`[GeminiProvider] Analysis completed successfully. Extracted ${validated.clauses.length} clauses, ${validated.risks.length} risks.`);
-      return validated;
+      return this.normalizeAndValidateAnalysis(parsed, fullText);
     } catch (err: any) {
       logger.error(`[GeminiProvider] Gemini analysis error/validation failure: ${err.message}`);
       if (rawOutput) {
@@ -253,6 +240,75 @@ export class GeminiProvider implements AIProvider {
       }
       return this.getFallbackAnalysis(fullText);
     }
+  }
+
+  private normalizeAndValidateAnalysis(parsed: any, fallbackText: string): DocumentAnalysisResult {
+    // Normalization of parsed output to ensure robust schema compatibility
+    parsed.partiesInvolved = parsed.partiesInvolved || parsed.parties || null;
+    parsed.summaryPlain = parsed.summaryPlain || parsed.quickSummary || parsed.summary || 'Summary unavailable.';
+    parsed.summaryDetailed = parsed.summaryDetailed || parsed.detailedSummary || parsed.summaryPlain;
+    parsed.structuredSummary = parsed.structuredSummary || null;
+    parsed.structuredSummaryTamil = parsed.structuredSummaryTamil || null;
+    if (!parsed.summaryTamil && parsed.summaryPlain) {
+      parsed.summaryTamil = this.generateOfflineTamilSummary(parsed.summaryPlain);
+    }
+    if (Array.isArray(parsed.whatYouAreAgreeingTo)) {
+      parsed.whatYouAreAgreeingTo = parsed.whatYouAreAgreeingTo.join('\n• ');
+    } else if (!parsed.whatYouAreAgreeingTo) {
+      parsed.whatYouAreAgreeingTo = 'Standard obligations as outlined in the document.';
+    }
+    parsed.financialSummary = parsed.financialSummary || 'Standard financial terms apply.';
+    parsed.documentType = parsed.documentType || 'Legal Agreement';
+    parsed.scamScore = typeof parsed.scamScore === 'number' ? parsed.scamScore : 0.05;
+    
+    parsed.clauses = Array.isArray(parsed.clauses) ? parsed.clauses.map((c: any) => ({
+      title: c.title || 'General Clause',
+      category: c.category || 'General',
+      extractedText: c.extractedText || c.title || '',
+      pageNumber: typeof c.pageNumber === 'number' ? c.pageNumber : 1,
+      explanationPlain: c.explanationPlain || c.explanation || c.title || '',
+      explanationTamil: c.explanationTamil || c.explanationPlain || '',
+      riskLevel: ['LOW', 'MEDIUM', 'HIGH'].includes(c.riskLevel) ? c.riskLevel : 'LOW',
+      confidence: typeof c.confidence === 'number' ? c.confidence : 0.95,
+      sourceRef: c.sourceRef || 'Document',
+    })) : [];
+
+    parsed.risks = Array.isArray(parsed.risks) ? parsed.risks.map((r: any) => ({
+      riskLevel: ['LOW', 'MEDIUM', 'HIGH'].includes(r.riskLevel) ? r.riskLevel : 'LOW',
+      title: r.title || 'Document Consideration',
+      reasonPlain: r.reasonPlain || r.reason || r.description || '',
+      reasonTamil: r.reasonTamil || r.reasonPlain || '',
+      sourceRef: r.sourceRef || 'General',
+      suggestedNegotiation: r.suggestedNegotiation || null,
+    })) : [];
+
+    parsed.charges = Array.isArray(parsed.charges) ? parsed.charges : [];
+    parsed.penalties = Array.isArray(parsed.penalties) ? parsed.penalties : [];
+    parsed.importantDates = Array.isArray(parsed.importantDates) ? parsed.importantDates.map((d: any) => ({
+      dateString: d.dateString || d.date || 'Execution Date',
+      eventType: d.eventType || d.event || 'Milestone',
+      explanation: d.explanation || d.description || '',
+      sourceRef: d.sourceRef || null,
+    })) : [];
+    parsed.timelineEvents = Array.isArray(parsed.timelineEvents) ? parsed.timelineEvents.map((t: any, idx: number) => ({
+      sequenceOrder: typeof t.sequenceOrder === 'number' ? t.sequenceOrder : idx + 1,
+      eventDate: t.eventDate || t.date || null,
+      title: t.title || `Stage ${idx + 1}`,
+      description: t.description || '',
+      sourceRef: t.sourceRef || null,
+    })) : [];
+    parsed.fairnessAnalyses = Array.isArray(parsed.fairnessAnalyses) ? parsed.fairnessAnalyses.map((f: any) => ({
+      clauseTitle: f.clauseTitle || f.title || 'Standard Clause',
+      benchmarkCategory: f.benchmarkCategory || 'Standard',
+      imbalanceScore: typeof f.imbalanceScore === 'number' ? f.imbalanceScore : 0.85,
+      reason: f.reason || 'Standard balanced terms.',
+      evidence: f.evidence || '',
+      suggestedAlternative: f.suggestedAlternative || null,
+    })) : [];
+
+    const validated = DocumentAnalysisSchema.parse(parsed);
+    logger.info(`[GeminiProvider] Analysis completed successfully. Extracted ${validated.clauses.length} clauses, ${validated.risks.length} risks.`);
+    return validated;
   }
 
   async answerQuestion(
