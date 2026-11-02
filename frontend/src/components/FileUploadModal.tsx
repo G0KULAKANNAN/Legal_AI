@@ -66,7 +66,11 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ isOpen, onClos
       });
 
       if (res.data?.success) {
-        onSuccess(res.data.data);
+        const uploadedDoc = res.data.data;
+        if (uploadedDoc?.id) {
+          api.post(`/documents/${uploadedDoc.id}/process`).catch(() => {});
+        }
+        onSuccess(uploadedDoc);
         onClose();
       }
     } catch (err: any) {

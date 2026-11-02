@@ -203,6 +203,14 @@ ${a.risks && a.risks.length > 0
   }, [id]);
 
   useEffect(() => {
+    if (!document || ['COMPLETED', 'FAILED'].includes(document.status)) return;
+    const interval = setInterval(() => {
+      fetchDocument();
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [document?.status, id]);
+
+  useEffect(() => {
     return () => {
       if (currentAudio) {
         currentAudio.pause();

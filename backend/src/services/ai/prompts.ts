@@ -46,15 +46,10 @@ export function getDocumentAnalysisPrompt(documentText: string): string {
 TASK: Perform an exhaustive, high-precision legal document analysis on the text provided below.
 
 CRITICAL INSTRUCTIONS FOR EXCEPTIONAL SUMMARY QUALITY:
-1. Identify the exact Document Type (e.g. House Rental Agreement, Commercial Lease Agreement, Job Offer Letter, Employment Contract, Loan Agreement, Non-Disclosure Agreement, Land Sale Deed, Patta Order, General Power of Attorney).
-2. Extract the Parties Involved in 'partiesInvolved' (e.g. "Party 1 (Lessor/Landlord): [Name, Address/Details], Party 2 (Lessee/Tenant): [Name, Address/Details]" or "Employer: [Company Name], Employee: [Candidate Name]"). If specific names are not present, describe the executing entities explicitly.
-3. Write a comprehensive, crystal-clear Executive Summary in Plain English in 'summaryPlain'. It must thoroughly explain:
-   - What this document is and who it binds
-   - Core financial arrangements (exact numbers, rents, salaries, deposits, payment schedules)
-   - Duration/term of the agreement and effective start dates
-   - Notice period, lock-in period, and exit conditions
-   - Major restrictions or red flags that the signer must be aware of
-4. Write an equally thorough, natural, formal Tamil summary in 'summaryTamil' (சட்ட ஆவண முழுமையான தமிழ் சுருக்கம்). Clearly explain the parties involved, main purpose, financial terms (தொகை, வைப்புத்தொகை), கால அளவு (duration), நோட்டீஸ் காலம் (notice period), முக்கியமான நிபந்தனைகள் மற்றும் கையொப்பமிடும் முன் கவனிக்க வேண்டிய முக்கிய எச்சரிக்கைகள்.
+1. Identify the exact Document Type (e.g. Land Sale Deed / கிரைய பத்திரம், Patta / Chitta Order, Property Settlement Deed, House Rental Agreement, Commercial Lease Agreement, Job Offer Letter, Employment Contract, Loan Agreement, General Power of Attorney).
+2. Extract the Parties Involved in 'partiesInvolved' (e.g. "Seller/Vendor: [Name, Details], Buyer/Purchaser: [Name, Details]" or "Landlord/Lessor: [Name], Tenant/Lessee: [Name]"). Always extract executing names, addresses, and survey numbers/property details if present.
+3. Write a comprehensive, crystal-clear Executive Summary in Plain English in 'summaryPlain'. For land/property documents, clearly state property location, survey number, area/extent (sqft/cents/acres), consideration price, and title rights transferred.
+4. Write an equally thorough, natural, formal Tamil summary in 'summaryTamil' (சட்ட ஆவண முழுமையான தமிழ் சுருக்கம்). நில ஆவணமாக இருப்பின் சர்வே எண் (Survey Number), கிராமம், நிலப்பரப்பு, கிரையத் தொகை, மற்றும் வாங்குபவர்/விற்பவர் விவரங்களை தெளிவாக குறிப்பிடவும்.
 5. Provide a Detailed Summary in 'summaryDetailed' elaborating on operational guidelines, maintenance responsibilities, breach consequences, dispute resolution mechanisms, and legal jurisdiction.
 6. Detail "What You Are Agreeing To" (the core commitments required of the signing party) as clear, itemized points in 'whatYouAreAgreeingTo'.
 7. Summarize all Financial Terms (deposits, rent, salary, fees, payment schedule, refunds) with exact figures in 'financialSummary'.

@@ -33,7 +33,7 @@ export class GeminiProvider implements AIProvider {
   }
 
   private getModelName(): string {
-    return config.gemini.model || 'gemini-1.5-flash';
+    return config.gemini.model || 'gemini-3.5-flash-lite';
   }
 
   private validateApiKey(): void {
@@ -67,10 +67,10 @@ export class GeminiProvider implements AIProvider {
     const primaryModel = preferredModel || this.getModelName();
     const fallbackModels = [
       primaryModel,
-      'gemini-1.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash-8b',
-      'gemini-1.5-pro'
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.5-flash',
+      'gemini-flash-latest'
     ];
     const uniqueModels = Array.from(new Set(fallbackModels));
 
@@ -86,12 +86,15 @@ export class GeminiProvider implements AIProvider {
           msg.includes('not found') ||
           msg.includes('not supported') ||
           msg.includes('no longer available') ||
-          msg.includes('high demand');
+          msg.includes('high demand') ||
+          msg.includes('fetch failed') ||
+          msg.includes('timeout') ||
+          msg.includes('overloaded');
 
         if (!shouldFallback) {
           throw err;
         }
-        logger.warn(`[GeminiProvider] Model ${modelName} returned temporary error/404 (${msg}). Attempting next fallback model...`);
+        logger.warn(`[GeminiProvider] Model ${modelName} returned temporary error (${msg}). Attempting next fallback model...`);
       }
     }
     throw lastError;
@@ -184,14 +187,14 @@ export class GeminiProvider implements AIProvider {
           model: modelName,
           generationConfig: {
             responseMimeType: 'application/json',
-            temperature: 0.2,
+            temperature: 0.1,
           },
         });
 
         const response = await model.generateContent([prompt, filePart]);
         rawOutput = response.response.text() || '';
         return this.cleanJsonResponse(rawOutput);
-      });
+      }, 'gemini-3.5-flash-lite');
 
       const parsed = JSON.parse(cleanJson);
       return this.normalizeAndValidateAnalysis(parsed, extractedTextSnippet || 'Scanned Legal Document');
@@ -200,7 +203,10 @@ export class GeminiProvider implements AIProvider {
       if (rawOutput) {
         logger.debug(`[GeminiProvider] Raw output snippet: ${rawOutput.substring(0, 500)}`);
       }
-      return this.analyzeDocument(extractedTextSnippet || 'Scanned Legal Document', _documentType);
+      if (extractedTextSnippet && extractedTextSnippet.trim().length >= 50) {
+        return this.analyzeDocument(extractedTextSnippet, _documentType);
+      }
+      return this.getFallbackAnalysis(_documentType || 'Scanned Document (Analysis Incomplete)');
     }
   }
 
@@ -222,14 +228,14 @@ export class GeminiProvider implements AIProvider {
           model: modelName,
           generationConfig: {
             responseMimeType: 'application/json',
-            temperature: 0.2,
+            temperature: 0.1,
           },
         });
 
         const response = await model.generateContent(prompt);
         rawOutput = response.response.text() || '';
         return this.cleanJsonResponse(rawOutput);
-      });
+      }, 'gemini-3.5-flash-lite');
 
       const parsed = JSON.parse(cleanJson);
       return this.normalizeAndValidateAnalysis(parsed, fullText);
@@ -352,7 +358,7 @@ export class GeminiProvider implements AIProvider {
         }
 
         return translated.trim();
-      });
+      }, 'gemini-3.5-flash-lite');
     } catch (err: any) {
       logger.warn(`[GeminiProvider] Online translation unavailable (${err.message}). Using offline Tamil summary formatter.`);
       return this.generateOfflineTamilSummary(text);
@@ -421,7 +427,7 @@ export class GeminiProvider implements AIProvider {
         }
 
         return script.trim();
-      });
+      }, 'gemini-3.5-flash-lite');
     } catch (err: any) {
       throw this.sanitizeError(err);
     }
@@ -460,7 +466,7 @@ export class GeminiProvider implements AIProvider {
 
         const response = await model.generateContent(prompt);
         return this.cleanJsonResponse(response.response.text() || '{}');
-      });
+      }, 'gemini-3.5-flash-lite');
 
       const parsed = JSON.parse(cleanJson);
       return ComparisonSchema.parse(parsed);

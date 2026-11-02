@@ -77,7 +77,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     fetchDocuments();
 
-    // Poll status every 4 seconds for processing documents
+    // Poll status every 1.5 seconds for actively processing documents
     const interval = setInterval(() => {
       setDocuments((prevDocs) => {
         const hasProcessing = prevDocs.some((d) =>
@@ -95,7 +95,7 @@ export const DashboardPage: React.FC = () => {
         }
         return prevDocs;
       });
-    }, 4000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, []);
